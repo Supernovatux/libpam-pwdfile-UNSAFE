@@ -68,9 +68,6 @@
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
 
-#include "md5.h"
-#include "bigcrypt.h"
-
 static int lock_fd(int fd) {
     int delay;
     
@@ -101,7 +98,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     FILE *pwdfile;
     int use_flock = 0;
     int use_delay = 1;
-    int legacy_crypt = 0;
     int debug = 0;
     char * linebuf = NULL;
     size_t linebuflen;
@@ -123,8 +119,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	    use_delay = 0;
 	else if (!strcmp(argv[i], "debug"))
 	    debug = 1;
-	else if (!strcmp(argv[i], "legacy_crypt"))
-	    legacy_crypt = 1;
     }
     
 #ifdef HAVE_PAM_FAIL_DELAY
@@ -211,13 +205,6 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	return PAM_AUTH_ERR;
     }
     
-    if (legacy_crypt && strcmp(crypted_password, stored_crypted_password)) {
-	if (!strncmp(stored_crypted_password, "$1$", 3))
-	    crypted_password = Brokencrypt_md5(password, stored_crypted_password);
-	else
-	    crypted_password = bigcrypt(password, stored_crypted_password);
-    }
-
     if (strcmp(crypted_password, stored_crypted_password)) {
 	pam_syslog(pamh, LOG_NOTICE, "wrong password for user %s", name);
 	free(linebuf);

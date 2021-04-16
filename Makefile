@@ -9,22 +9,13 @@ LDFLAGS += -Wl,-x -shared
 TITLE = pam_pwdfile
 LIBSHARED = $(TITLE).so
 LDLIBS = -lcrypt -lpam
-LIBOBJ = $(TITLE).o md5_broken.o md5_crypt_broken.o bigcrypt.o
-CPPFLAGS_MD5_BROKEN = -DHIGHFIRST -D'MD5Name(x)=Broken\#\#x'
+LIBOBJ = $(TITLE).o
 
 
 all: $(LIBSHARED)
 
 $(LIBSHARED): $(LIBOBJ)
 	$(CC) $(LDFLAGS) $(LIBOBJ) $(LDLIBS) -o $@
-
-
-md5_broken.o: md5.c
-	$(CC) -c $(CPPFLAGS) $(CPPFLAGS_MD5_BROKEN) $(CFLAGS) $< -o $@
-
-md5_crypt_broken.o: md5_crypt.c
-	$(CC) -c $(CPPFLAGS) $(CPPFLAGS_MD5_BROKEN) $(CFLAGS) $< -o $@
-
 
 install: $(LIBSHARED)
 	$(INSTALL) -m 0755 -d $(DESTDIR)$(PAM_LIB_DIR)
