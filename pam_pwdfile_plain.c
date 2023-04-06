@@ -5,6 +5,7 @@
  * 
  * Copyright (c) 1999-2003 Charl P. Botha <cpbotha@cpbotha.net>
  * Copyright (c) 2012-2013 Timo Weingärtner <timo@tiwe.de>
+ * Copyright (c) 2023 Supernovatux
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,18 +39,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef USE_CRYPT_R
-#define _GNU_SOURCE
-#include <crypt.h>
-#else
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 700
-#endif
-#ifndef _BSD_SOURCE
-#define _BSD_SOURCE
-#endif
-#endif
-
 #include <syslog.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +62,7 @@ static int lock_fd(int fd) {
     
     for (delay = 5; delay <= 40; delay *= 2) {
 	if (flock(fd, LOCK_SH | LOCK_NB) == -1) {
-	    /* failed */
+	    // failed
 	    if (errno != EWOULDBLOCK) goto failed;
 	    sleep(delay);
 	}else{
@@ -84,7 +73,6 @@ static int lock_fd(int fd) {
     failed:
     return -1;
 }
-
 /* expected hook for auth service */
 __attribute__((visibility("default")))
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
@@ -93,17 +81,13 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     const char *name;
     char const * password;
     char const * pwdfilename = NULL;
-    char const * stored_crypted_password = NULL;
-    char const * crypted_password;
+    char const * stored_password = NULL;
     FILE *pwdfile;
     int use_flock = 0;
     int use_delay = 1;
-    int debug = 0;
+    int debug = 1;
     char * linebuf = NULL;
     size_t linebuflen;
-#ifdef USE_CRYPT_R
-    struct crypt_data crypt_buf;
-#endif
     
     /* we require the pwdfile switch and argument to be present, else we don't work */
     for (i = 0; i < argc; ++i) {
@@ -150,7 +134,7 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	return PAM_AUTHINFO_UNAVAIL;
     }
     
-    /* get the crypted password corresponding to this user out of pwdfile */
+    /* get the password corresponding to this user out of pwdfile */
     while (getline(&linebuf, &linebuflen, pwdfile) > 0) {
 	/* strsep changes its argument, make a copy */
 	char * nexttok = linebuf;
@@ -164,17 +148,17 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	
 	/* second field: password (until next colon or newline) */
 	if ((curtok = strsep(&nexttok, ":\n"))) {
-	    stored_crypted_password = curtok;
+	    stored_password = curtok;
 	    break;
 	}
     }
     fclose(pwdfile);
-    /* we keep linebuf (allocated by getline), stored_crypted_password is pointing into it */
+    /* we keep linebuf (allocated by getline), stored_password is pointing into it */
 
-    if (!stored_crypted_password)
+    if (!stored_password)
 	if (debug) pam_syslog(pamh, LOG_ERR, "user not found in password database");
     
-    if (stored_crypted_password && !strlen(stored_crypted_password)) {
+    if (stored_password && !strlen(stored_password)) {
 	if (debug) pam_syslog(pamh, LOG_DEBUG, "user has empty password field");
 	free(linebuf);
 	return flags & PAM_DISALLOW_NULL_AUTHTOK ? PAM_AUTH_ERR : PAM_SUCCESS;
@@ -186,26 +170,11 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	return PAM_AUTH_ERR;
     }
     
-    if (!stored_crypted_password) {
+    if (!stored_password) {
 	free(linebuf);
 	return PAM_USER_UNKNOWN;
     }
-    
-    if (debug) pam_syslog(pamh, LOG_DEBUG, "got crypted password == '%s'", stored_crypted_password);
-    
-#ifdef USE_CRYPT_R
-    crypt_buf.initialized = 0;
-    if (!(crypted_password = crypt_r(password, stored_crypted_password, &crypt_buf)))
-#else
-    if (!(crypted_password = crypt(password, stored_crypted_password)))
-#endif
-    {
-	pam_syslog(pamh, LOG_ERR, "crypt() failed");
-	free(linebuf);
-	return PAM_AUTH_ERR;
-    }
-    
-    if (strcmp(crypted_password, stored_crypted_password)) {
+    if (strcmp(password, stored_password)) {
 	pam_syslog(pamh, LOG_NOTICE, "wrong password for user %s", name);
 	free(linebuf);
 	return PAM_AUTH_ERR;
@@ -235,4 +204,3 @@ struct pam_module _pam_listfile_modstruct = {
 	NULL,
 };
 #endif
-/* vim:set ts=8 sw=4: */
