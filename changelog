@@ -1,3 +1,31 @@
+commit a7384191e969409740f6412afbfe2f9cdc42944a (HEAD -> master)
+Author: supernovatux <thulashitharan.d@gmail.com>
+Date:   Thu Apr 6 21:42:00 2023 +0530
+
+    Made the library less secure!!!!!
+
+commit f46bd38f387f0a580e134388086321b03e6b17d3 (origin/master, origin/HEAD)
+Author: Timo Weingärtner <timo@tiwe.de>
+Date:   Fri Apr 16 19:33:21 2021 +0200
+
+    do away with legacy crypt types
+    
+    it is the responsibility of libcrypt to implement crypt types
+
+commit e29d26e77d8577ea272211c20240b3c39dff6bf0
+Author: Timo Weingärtner <timo@tiwe.de>
+Date:   Thu Mar 6 21:30:20 2014 +0100
+
+    enable large file support
+    
+    this should make some tests for LFS happy; we don't use sizes of or offsets in files here
+
+commit 8f0e412b48178c00abd023917dd2c9050ee89c18 (tag: v1.0)
+Author: Timo Weingärtner <timo@tiwe.de>
+Date:   Sun Sep 29 15:55:25 2013 +0200
+
+    release 1.0
+
 commit 6946f4bd3102d677d9ce43d4c48ed6bec2b13a31
 Author: Timo Weingärtner <timo@tiwe.de>
 Date:   2013-09-29 15:50:21 +0200
